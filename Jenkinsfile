@@ -3,9 +3,9 @@ pipeline {
 
     stages {
         stage('Checkstyle') {
-            agent {
-                label 'checkstyle'
-            }
+
+            agent any
+
             steps {
                 // Use Maven checkstyle plugin to generate a code style report
                 sh './mvnw checkstyle:checkstyle'
@@ -16,9 +16,9 @@ pipeline {
 
 
         stage('Test') {
-            agent {
-                label 'maven'
-             }
+
+            agent any
+
             steps {
                 // Run Maven tests
                 sh './mvnw test'
@@ -26,9 +26,9 @@ pipeline {
         }
 
         stage('Build') {
-            agent {
-                label 'maven'
-            }
+
+            agent any
+
             steps {
                 // Build without tests using Maven
                 sh './mvnw package -DskipTests'
@@ -36,9 +36,9 @@ pipeline {
         }
 
         stage('Create MR Docker Image') {
-            agent {
-                label 'docker'
-            }
+
+            agent any
+
             steps {
                 // Build a Docker image using the Dockerfile in the spring-petclinic repo
                 sh 'docker build -t mr:{{GIT_COMMIT}} .'
@@ -61,9 +61,9 @@ pipeline {
 
     stages {
         stage('Create Main Docker Image') {
-            agent {
-                label 'docker'
-            }
+
+            agent any
+
             steps {
                 // Build a Docker image using the Dockerfile in the spring-petclinic repo
                 sh 'docker build -t main:{{GIT_COMMIT}} .'
