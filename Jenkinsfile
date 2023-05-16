@@ -14,6 +14,7 @@ pipeline {
             }
         }
 
+
         stage('Test') {
             agent {
                 label 'maven'
@@ -51,6 +52,8 @@ pipeline {
             }
         }
     }
+}
+
 
 // Pipeline for the main branch
 pipeline {
