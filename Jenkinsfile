@@ -4,18 +4,18 @@ pipeline {
     stages {
         stage('Checkstyle') {
             steps {
-                sh 'mvn checkstyle:checkstyle'
+                sh './mvnw checkstyle:checkstyle'
                 archiveArtifacts artifacts: 'target/site/checkstyle.html', onlyIfSuccessful: true
             }
         }
         stage('Test with Maven') {
             steps {
-                sh 'mvn test'
+                sh './mvnw test'
             }
         }
         stage('Build') {
             steps {
-                sh 'mvn package -DskipTests'
+                sh './mvnw package -DskipTests'
             }
         }
         stage('Create a docker image for MR') {
