@@ -34,7 +34,7 @@ pipeline {
             }
         }
 
-        stage('Create Docker Image') {
+        stage('Create MR Docker Image') {
             agent {
                 label 'docker'
             }
@@ -57,7 +57,7 @@ pipeline {
     agent any
 
     stages {
-        stage('Create Docker Image') {
+        stage('Create Main Docker Image') {
             agent {
                 label 'docker'
             }
@@ -72,3 +72,12 @@ pipeline {
             }
         }
     }
+
+    post {
+        always {
+            // logout from dockerhub
+            sh 'docker logout'
+        }
+
+    }
+}
