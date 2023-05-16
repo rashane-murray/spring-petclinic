@@ -3,63 +3,55 @@ pipeline {
 
     stages {
         stage('Checkstyle') {
-
-            agent any
-
             steps {
-                // Use Maven checkstyle plugin to generate a code style report
-                sh './mvnw checkstyle:checkstyle'
-                // Save the report as a job artifact
-                archiveArtifacts artifacts: 'target/site/checkstyle.html', fingerprint: true
+                sh 'mvn checkstyle:checkstyle'
+                archiveArtifacts artifacts: 'target/site/checkstyle.html', onlyIfSuccessful: true
             }
         }
-
-
-        stage('Test') {
-
-            agent any
-
+        stage('Test with Maven') {
             steps {
-                // Run Maven tests
-                sh './mvnw test'
+                sh 'mvn test'
             }
         }
-
         stage('Build') {
-
-            agent any
-
             steps {
-                // Build without tests using Maven
-                sh './mvnw package -DskipTests'
+                sh 'mvn package -DskipTests'
             }
         }
-
-        stage('Build MR image') {
-
-            dockerImage = docker.build("rshnmrry/mr:merge-request-{{GIT_COMMIT}}")
-        }
-
-        stage('Push image') {
-
-            withDockerRegistry([ credentialsId: "dockerhub", url: "https://hub.docker.com/repository/docker/rshnmrry/mr" ]) {
-
-                dockerImage.push()
+        stage('Create a docker image for MR') {
+            agent any
+            steps {
+                script {
+                    def gitCommit = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                    def dockerImage = docker.build("mr:${gitCommit}", "-f Dockerfile .")
+                    withDockerRegistry([credentialsId: 'dockerhub', url: 'https://hub.docker.com/repository/docker/rshnmrry/mr']) {
+                        dockerImage.push()
+                    }
+                }
             }
         }
-
-       stage('Build Main image') {
-
-            dockerImage = docker.build("rshnmrry/main:mainline-{{GIT_COMMIT}}")
-        }
-
-        stage('Push image') {
-
-            withDockerRegistry([ credentialsId: "dockerhub", url: "https://hub.docker.com/repository/docker/rshnmrry/main" ]) {
-
-                dockerImage.push()
+        stage('Build and push docker image for main branch') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    def gitCommit = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                    def dockerImage = docker.build("main:${gitCommit}", "-f Dockerfile .")
+                    withDockerRegistry([credentialsId: 'dockerhub', url: 'https://hub.docker.com/repository/docker/rshnmrry/main']) {
+                        dockerImage.push()
+                    }
+                }
             }
         }
     }
-}
 
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
+}
