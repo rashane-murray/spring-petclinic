@@ -35,52 +35,31 @@ pipeline {
             }
         }
 
-        stage('Create MR Docker Image') {
+        stage('Build MR image') {
 
-            agent any
+            dockerImage = docker.build("rshnmrry/mr:merge-request-{{GIT_COMMIT}}")
+        }
 
-            steps {
-                // Build a Docker image using the Dockerfile in the spring-petclinic repo
-                sh 'docker build -t mr:{{GIT_COMMIT}} .'
-                // Tag the image using GIT_COMMIT (short)
-                sh 'docker tag mr:{{GIT_COMMIT}} mr:{{GIT_COMMIT}}-short'
-                // Push the image to the "mr" repository on Docker Hub
-                withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'DOCKERHUB_PASSWORD', usernameVariable: 'DOCKERHUB_USERNAME')]) {
-                    sh 'docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD'
-                    sh 'docker push mr:{{GIT_COMMIT}}-short'
-                }
+        stage('Push image') {
+
+            withDockerRegistry([ credentialsId: "dockerhub", url: "https://hub.docker.com/repository/docker/rshnmrry/mr" ]) {
+
+                dockerImage.push()
+            }
+        }
+
+       stage('Build Main image') {
+
+            dockerImage = docker.build("rshnmrry/main:mainline-{{GIT_COMMIT}}")
+        }
+
+        stage('Push image') {
+
+            withDockerRegistry([ credentialsId: "dockerhub", url: "https://hub.docker.com/repository/docker/rshnmrry/main" ]) {
+
+                dockerImage.push()
             }
         }
     }
 }
 
-
-// Pipeline for the main branch
-pipeline {
-    agent any
-
-    stages {
-        stage('Create Main Docker Image') {
-
-            agent any
-
-            steps {
-                // Build a Docker image using the Dockerfile in the spring-petclinic repo
-                sh 'docker build -t main:{{GIT_COMMIT}} .'
-                // Push the image to the "main" repository on Docker Hub
-                withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'DOCKERHUB_PASSWORD', usernameVariable: 'DOCKERHUB_USERNAME')]) {
-                    sh 'docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD'
-                    sh 'docker push main:{{GIT_COMMIT}}'
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            // logout from dockerhub
-            sh 'docker logout'
-        }
-
-    }
-}
