@@ -1,0 +1,44 @@
+image: maven:3.8.5-openjdk-17
+
+stages:
+  - merge_request
+  - main
+
+checkstyle:
+  stage: merge_request
+  script:
+    - ./gradlew checkstyleMain checkstyleTest
+  artifacts:
+    paths:
+      - build/reports/checkstyle/main.html
+      - build/reports/checkstyle/test.html
+
+test:
+  stage: merge_request
+  script:
+    - ./gradlew test
+
+build:
+  stage: merge_request
+  script:
+    - ./gradlew build -x test
+
+create_mr_docker_image:
+  stage: merge_request
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker login registry.gitlab.com
+    - docker build -t registry.gitlab.com/rmurray3/spring-petclinic:$CI_COMMIT_SHORT_SHA .
+    - docker push registry.gitlab.com/rmurray3/spring-petclinic:$CI_COMMIT_SHORT_SHA
+
+create_main_docker_image:
+  stage: main
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker login registry.gitlab.com
+    - docker build -t registry.gitlab.com/rmurray3/spring-petclinic:$CI_COMMIT_SHORT_SHA .
+    - docker push registry.gitlab.com/rmurray3/spring-petclinic:$CI_COMMIT_SHORT_SHA
